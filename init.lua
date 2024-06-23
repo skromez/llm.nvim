@@ -123,8 +123,6 @@ local function send_to_llm(bufnr, win, text)
 		stream = true,
 	}
 
-	print(vim.inspect(messages))
-
 	nio.run(function()
 		local response = nio.process.run({
 			cmd = "curl",
