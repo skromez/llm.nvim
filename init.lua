@@ -275,7 +275,7 @@ function M.create_chat_window()
 
 	vim.api.nvim_command("TSBufEnable highlight")
 
-	vim.keymap.set({ "n", "v" }, "d", "<NOP>", { buffer = buf, noremap = true, silent = true })
+	vim.keymap.set({ "n" }, "d", "<NOP>", { buffer = buf, noremap = true, silent = true })
 	vim.keymap.set({ "n", "v" }, "dd", "<NOP>", { buffer = buf, noremap = true, silent = true })
 	vim.keymap.set({ "n", "v" }, "D", "<NOP>", { buffer = buf, noremap = true, silent = true })
 
