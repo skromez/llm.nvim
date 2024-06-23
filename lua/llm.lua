@@ -197,7 +197,6 @@ local function send_to_llm(bufnr, win, text)
 				else
 					if data_start then
 						local json_str = line:sub(data_start + 6)
-						nio.sleep(1)
 						if is_window_valid(win) and is_buffer_valid(bufnr) then
 							vim.schedule(function()
 								local success, data_json = pcall(vim.fn.json_decode, json_str)
