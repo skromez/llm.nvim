@@ -140,7 +140,6 @@ local function send_to_llm(bufnr, win, text)
 			},
 		})
 		local buffer = ""
-		local is_first_chunk = true
 		local assistant_response = ""
 		if is_buffer_valid(bufnr) then
 			append_header(bufnr, "llm")
@@ -203,10 +202,6 @@ local function send_to_llm(bufnr, win, text)
 								local success, data_json = pcall(vim.fn.json_decode, json_str)
 								if success and data_json.choices and data_json.choices[1].delta.content then
 									local content = data_json.choices[1].delta.content
-									if is_first_chunk and content:match("^%s") and config.model:find("deepseek") then
-										content = content:sub(2)
-										is_first_chunk = false
-									end
 									assistant_response = assistant_response .. content
 									append_chunk_to_buffer(win, bufnr, content)
 								end
