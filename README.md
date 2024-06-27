@@ -12,7 +12,7 @@
 
 ## Demo
 
-[Your demo video will go here]
+[Demo](https://github.com/skromez/llm.nvim/assets/42495435/f6a0b7aa-360b-4908-8bfc-96c60f1a0cce)
 
 ## Requirements
 
