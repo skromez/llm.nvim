@@ -12,8 +12,7 @@ Key capabilities:
 - Answer coding questions in detail, using examples from the user's own code when relevant. Break down complex topics step-by-step.
 - Spot potential bugs and logical errors. Alert the user and suggest fixes.
 - Upon request, add helpful comments explaining complex or unclear code.
-- Suggest relevant documentation, StackOverflow answers, and other resources related to the user's code and questions.
-- Engage in back-and-forth conversations to understand the user's intent and provide the most helpful information.
+- Suggest relevant documentation, StackOverflow answers, and other resources related to the user's code and questions. - Engage in back-and-forth conversations to understand the user's intent and provide the most helpful information.
 - Keep concise and use markdown.
 - When asked to create code, only generate the code. No bugs.
 - Think step by step
@@ -22,6 +21,48 @@ Key capabilities:
 
 local is_cancelled = false
 local conversation_history = {}
+
+vim.g.yanked_text_info = { text = "", filetype = "" }
+
+local function custom_yank()
+	vim.cmd("normal! y")
+
+	vim.g.yanked_text_info = {
+		text = vim.fn.getreg('"'),
+		filetype = vim.bo.filetype,
+	}
+end
+
+vim.api.nvim_create_autocmd("TextYankPost", {
+	pattern = "*",
+	callback = function()
+		custom_yank()
+	end,
+})
+
+local function paste_formatted_text()
+	local current_win = vim.api.nvim_get_current_win()
+	local current_buf = vim.api.nvim_win_get_buf(current_win)
+	local current_filetype = vim.bo[current_buf].filetype
+	local yanked_info = vim.g.yanked_text_info
+
+	local text_to_paste
+	if current_filetype == "markdown" and yanked_info.filetype ~= "" then
+		text_to_paste = string.format("```%s\n%s```\n", yanked_info.filetype, yanked_info.text)
+	else
+		text_to_paste = yanked_info.text
+	end
+
+	local cursor = vim.api.nvim_win_get_cursor(current_win)
+	local row, col = cursor[1] - 1, cursor[2]
+
+	vim.api.nvim_buf_set_text(current_buf, row, col, row, col, vim.split(text_to_paste, "\n"))
+
+	-- Move cursor to end of pasted text
+	local new_row = row + #vim.split(text_to_paste, "\n") - 1
+	local new_col = col + #vim.split(text_to_paste, "\n")[#vim.split(text_to_paste, "\n")]
+	vim.api.nvim_win_set_cursor(current_win, { new_row + 1, new_col })
+end
 
 local function is_window_valid(win)
 	return win and vim.api.nvim_win_is_valid(win)
@@ -284,6 +325,7 @@ function M.create_chat_window()
 				process_text(buf, win)
 			end,
 		},
+		{ mode = "n", lhs = "p", rhs = paste_formatted_text },
 		{
 			mode = { "n", "i" },
 			lhs = "<C-q>",
@@ -304,7 +346,7 @@ function M.create_chat_window()
 	append_header(buf, "user")
 	vim.cmd("startinsert")
 
-	conversation_history = {} -- Reset conversation history when creating a new chat window
+	conversation_history = {}
 end
 
 function M.open_chat()
