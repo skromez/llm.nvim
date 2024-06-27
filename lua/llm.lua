@@ -40,6 +40,52 @@ vim.api.nvim_create_autocmd("TextYankPost", {
 	end,
 })
 
+local function clear_conversation_history()
+	local history_file = vim.fn.stdpath("data") .. "/llm_chat_history.json"
+	local file = io.open(history_file, "w")
+	if file then
+		file:write("")
+		file:close()
+		print("Conversation history cleared")
+	else
+		print("Failed to clear conversation history")
+	end
+end
+
+local function save_conversation_history()
+	local history_file = vim.fn.stdpath("data") .. "/llm_chat_history.json"
+	local file = io.open(history_file, "w")
+	if file then
+		file:write(vim.fn.json_encode(conversation_history))
+		file:close()
+	end
+end
+
+local function load_conversation_history()
+	local history_file = vim.fn.stdpath("data") .. "/llm_chat_history.json"
+	local file = io.open(history_file, "r")
+	if file then
+		local content = file:read("*all")
+		file:close()
+		local success, decoded = pcall(vim.fn.json_decode, content)
+		if success and type(decoded) == "table" then
+			return decoded
+		end
+	end
+	return {}
+end
+
+local function setup_autocmds(buf)
+	local group = vim.api.nvim_create_augroup("LLMChatAutocmds", { clear = true })
+	vim.api.nvim_create_autocmd("BufUnload", {
+		group = group,
+		buffer = buf,
+		callback = function()
+			save_conversation_history()
+		end,
+	})
+end
+
 local function paste_formatted_text()
 	local current_win = vim.api.nvim_get_current_win()
 	local current_buf = vim.api.nvim_win_get_buf(current_win)
@@ -231,6 +277,7 @@ local function send_to_llm(bufnr, win, text)
 						vim.schedule(function()
 							table.insert(conversation_history, { role = "assistant", content = assistant_response })
 							append_padding_to_buffer(bufnr)
+							save_conversation_history()
 						end)
 					end
 					return
@@ -343,10 +390,22 @@ function M.create_chat_window()
 		})
 	end
 
+	conversation_history = load_conversation_history()
+
+	for _, message in ipairs(conversation_history) do
+		if message.role == "user" then
+			append_header(buf, "user")
+			append_chunk_to_buffer(win, buf, message.content:sub(2))
+		elseif message.role == "assistant" then
+			append_header(buf, "llm")
+			append_chunk_to_buffer(win, buf, message.content .. "\n")
+		end
+	end
+
+	setup_autocmds(buf)
+
 	append_header(buf, "user")
 	vim.cmd("startinsert")
-
-	conversation_history = {}
 end
 
 function M.open_chat()
@@ -357,6 +416,7 @@ function M.setup(opts)
 	config.api_key = opts.api_key or config.api_key
 	config.model = opts.model or config.model
 	config.system_prompt = opts.system_prompt or config.system_prompt
+	vim.api.nvim_create_user_command("LLMChatClearHistory", clear_conversation_history, {})
 end
 
 return M
