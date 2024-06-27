@@ -405,6 +405,7 @@ function M.create_chat_window()
 	setup_autocmds(buf)
 
 	append_header(buf, "user")
+	vim.cmd("normal! zz")
 	vim.cmd("startinsert")
 end
 
